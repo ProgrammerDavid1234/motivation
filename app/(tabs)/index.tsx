@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,14 +9,20 @@ import {
   Alert,
   Image,
   Dimensions,
+  TouchableOpacity,
 } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import LottieView from 'lottie-react-native';
+
 import SheImage from '../../assets/images/she.jpg';
+// import FunThings from '../../components/FunThings';
+import MessageCard from '../../components/MessageCard';
+import { generateLoveMessages } from '../../constants/loveMessages';
+
 
 const { width } = Dimensions.get('window');
 
-// Notification settings
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -25,46 +31,51 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Word banks
-const adjectives = ['beautiful', 'strong', 'brilliant', 'amazing', 'resilient', 'kind', 'fearless', 'compassionate', 'inspiring', 'thoughtful'];
-const actions = ['brightens', 'inspires', 'heals', 'uplifts', 'soothes', 'guides', 'empowers', 'touches', 'comforts', 'enriches'];
-const nouns = ['my heart', 'my soul', 'my day', 'the world', 'everything around me', 'my dreams', 'my thoughts', 'every moment', 'the universe', 'my spirit'];
-const templates = [
-  'You are so {adj}, you {verb} {noun}.',
-  'Your {adj} soul always {verb} {noun}.',
-  'You bring {adj} energy that {verb} {noun}.',
-  'My love, your {adj} smile {verb} {noun}.',
-  'Never forget how {adj} you are — you {verb} {noun}.',
-  'Just being you is enough to {verb} {noun}.',
-  'You’re not just {adj}, you’re the reason {noun} feels full.',
-  'You’re the {adj} light that {verb} my path.',
-  'Your presence {verb} everything — truly {adj}.',
-  'Every breath you take {verb} {noun} with {adj} love.',
-];
-
-// Generate messages
-const messages = Array.from({ length: 1440 }, () => {
-  const template = templates[Math.floor(Math.random() * templates.length)];
-  const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
-  const verb = actions[Math.floor(Math.random() * actions.length)];
-  const noun = nouns[Math.floor(Math.random() * nouns.length)];
-  return template
-    .replace('{adj}', adj)
-    .replace('{verb}', verb)
-    .replace('{noun}', noun)
-    .replace('{adj}', adj);
-});
-
-const MessageCard = ({ message }: { message: string }) => (
-  <View style={cardStyles.card}>
-    <Text style={cardStyles.text}>{message}</Text>
-  </View>
-);
+const messages = generateLoveMessages();
 
 export default function App() {
+  const [notificationsPaused, setNotificationsPaused] = useState(false);
+const [diary, setDiary] = useState('');
+const [savedNote, setSavedNote] = useState('');
+const [compliment, setCompliment] = useState('');
+
+const compliments = [
+  "You're even more lovely than this app 😍",
+  "Your smile is my favorite notification 💬",
+  "You're the sunshine I didn't know I needed ☀️",
+  "You make every moment magical ✨",
+  "Even coffee isn’t as uplifting as you ☕💕",
+];
+
+const saveNote = () => {
+  if (diary.trim()) {
+    setSavedNote(diary.trim());
+    setDiary('');
+    Alert.alert('Saved!', 'Your note was saved 💌');
+  }
+};
+
+const giveCompliment = () => {
+  const random = compliments[Math.floor(Math.random() * compliments.length)];
+  setCompliment(random);
+};
+
   useEffect(() => {
-    scheduleMessages();
-  }, []);
+    registerAndSchedule();
+
+    async function registerAndSchedule() {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission not granted!');
+        return;
+      }
+
+      if (!notificationsPaused) {
+        scheduleMessages();
+      }
+    }
+
+  }, [notificationsPaused]);
 
   const scheduleMessages = async () => {
     if (!Device.isDevice) {
@@ -104,8 +115,37 @@ export default function App() {
     }
   };
 
-  const message = messages[new Date().getHours()];
+  const toggleNotifications = async () => {
+    if (!notificationsPaused) {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+    } else {
+      scheduleMessages();
+    }
+    setNotificationsPaused(!notificationsPaused);
+  };
+
   const name = 'Princess';
+  const mode = 'fun';
+  const message = messages[new Date().getHours()];
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 17) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  const loveStartDate = new Date('2025-01-25');
+  const daysTogether = Math.floor(
+    (new Date().getTime() - loveStartDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  const loveQuotes = [
+    "You're my today and all of my tomorrows.",
+    "In your smile, I see something more beautiful than stars.",
+    "You are my heart, my life, my one and only thought.",
+  ];
+  const quote = loveQuotes[new Date().getDay() % loveQuotes.length];
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -115,12 +155,35 @@ export default function App() {
           Happy Girlfriend&apos;s Day, You Adorable Human 💕
         </Text>
 
-        <View style={styles.imageWrapper}>
-          <Image source={SheImage} style={styles.image} />
+        <LottieView
+          source={{ uri: 'https://lottie.host/dd6cf145-7c6a-40b2-90a6-275f25d705f7/bLDpd7tSBm.lottie' }}
+          autoPlay
+          loop
+          style={{ width: 200, height: 200 }}
+        />
+
+
+        <View style={styles.outerGlow}>
+          <View style={styles.imageWrapper}>
+            <Image source={SheImage} style={styles.image} />
+          </View>
         </View>
 
+        <Text style={styles.quote}>{quote}</Text>
         <MessageCard message={message} />
+        <Text style={styles.days}>You've been loved for {daysTogether} days 💖</Text>
+
+        
+
+        <TouchableOpacity style={styles.button} onPress={toggleNotifications}>
+          <Text style={styles.buttonText}>
+            {notificationsPaused ? 'Resume Messages' : 'Pause Messages'}
+          </Text>
+        </TouchableOpacity>
+
         <Text style={styles.footerNote}>🌸 Made with endless love 🌸</Text>
+
+        {/* {mode === 'fun' && <FunThings />} */}
       </ScrollView>
     </SafeAreaView>
   );
@@ -136,13 +199,20 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 74,
     backgroundColor: '#ffe4ec',
   },
   title: {
     fontSize: 32,
     fontWeight: '800',
     color: '#d63384',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  greeting: {
+    fontSize: 20,
+    fontWeight: '500',
+    color: '#a0522d',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -153,22 +223,64 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 24,
   },
-  imageWrapper: {
-    shadowColor: '#d63384',
+  outerGlow: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 9999,
+    backgroundColor: '#ffe0f0',
+    shadowColor: '#ffb6c1',
     shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 25,
+    elevation: 15,
+  },
+  imageWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff0f6',
+    padding: 8,
+    borderRadius: 9999,
+    borderWidth: 3,
+    borderColor: '#ffc0cb',
+    shadowColor: '#ff69b4',
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
-    shadowRadius: 10,
-    elevation: 10,
-    borderRadius: 100,
-    overflow: 'hidden',
-    borderWidth: 4,
-    borderColor: '#ffb3d9',
+    shadowRadius: 20,
+    elevation: 12,
     marginBottom: 24,
+    transform: [{ scale: 1 }],
   },
   image: {
     width: width * 0.5,
     height: width * 0.5,
     borderRadius: width * 0.25,
+  },
+  quote: {
+    fontSize: 16,
+    fontStyle: 'italic',
+    color: '#cc3366',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  days: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#8b008b',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  button: {
+    backgroundColor: '#d63384',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginTop: 20,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   footerNote: {
     marginTop: 40,
@@ -177,29 +289,3 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
-
-const cardStyles = StyleSheet.create({
-  card: {
-    backgroundColor: '#fff0f6',
-    padding: 25,
-    borderRadius: 20,
-    marginVertical: 10,
-    marginHorizontal: 20,
-    borderWidth: 1,
-    borderColor: '#f9a8d4',
-    shadowColor: '#d63384',
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8,
-    width: width * 0.9,
-  },
-  text: {
-    fontSize: 20,
-    textAlign: 'center',
-    color: '#b03060',
-    fontWeight: '600',
-    lineHeight: 30,
-  },
-});
-
